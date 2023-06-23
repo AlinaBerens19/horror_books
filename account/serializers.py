@@ -5,7 +5,26 @@ from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password
 from rest_framework.validators import UniqueValidator
 from django.contrib.auth.password_validation import validate_password
+from rest_framework_simplejwt.serializers import TokenObtainPairSerializer
+from rest_framework_simplejwt.views import TokenObtainPairView
 
+
+class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
+    @classmethod
+    def get_token(cls, user):
+        token = super().get_token(user)
+
+        # Add custom claims
+        token['name'] = user.name
+        token['email'] = user.email
+        token['image'] = user.profile_picture
+        token['surname'] = user.surname
+        token['phone'] = user.phone
+        token['is_active'] = user.is_active
+        token['phone'] = user.phone
+        token['created'] = user.created
+        token['is_admin'] = user.is_admin
+        return token
 
 class UserSerializer(serializers.ModelSerializer):
 
