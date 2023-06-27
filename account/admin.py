@@ -1,6 +1,6 @@
 from django.contrib import admin
 
-from .models import User
+from .models import User, Profile
 
 @admin.register(User)
 class UserAdmin(admin.ModelAdmin):
@@ -12,4 +12,6 @@ class UserAdmin(admin.ModelAdmin):
 
     # Enable filtering by specified fields
     list_filter = ('created', 'updated')
+
+admin.site.register(Profile)    
 

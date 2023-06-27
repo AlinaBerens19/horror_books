@@ -1,6 +1,7 @@
 
+
 from rest_framework import serializers
-from .models import User
+from .models import Profile, User
 from django.contrib.auth import authenticate
 from django.contrib.auth.hashers import check_password
 from rest_framework.validators import UniqueValidator
@@ -25,29 +26,35 @@ class MyTokenObtainPairSerializer(TokenObtainPairSerializer):
         token['created'] = user.created
         token['is_admin'] = user.is_admin
         return token
+    
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ('address', 'country', 'city', 'phone', 'zip_code', 'birth_date')
 
 class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ('id', 'username', 'email', 'password', 'is_superuser', 'is_active','is_staff', 'phone', 'password')
+        fields = ('id', 'username', 'email', 'password', 'is_superuser', 'is_active','is_staff', 'phone', 'password', 'profile_picture')
 
 class RegisterSerializer(serializers.ModelSerializer):
     email = serializers.EmailField(
-            required=True,
-            validators=[UniqueValidator(queryset=User.objects.all())]
-            )
+        required=True,
+        validators=[UniqueValidator(queryset=User.objects.all())]
+    )
 
     password = serializers.CharField(write_only=True, required=True, validators=[validate_password])
     password2 = serializers.CharField(write_only=True, required=True)
-
+    
     class Meta:
         model = User
-        fields = ('username', 'password', 'password2', 'email', 'phone', 'username')
+        fields = ('username', 'password', 'password2', 'profile_picture', 'email', 'phone')
         extra_kwargs = {
             'email': {'required': True},
             'phone': {'required': True},
             'username': {'required': True},
+            'profile_picture': {'required': False}
         }
 
     def validate(self, attrs):
@@ -60,15 +67,17 @@ class RegisterSerializer(serializers.ModelSerializer):
         user = User.objects.create(
             username=validated_data['username'],
             email=validated_data['email'],
-            password=validated_data['password'],
-            phone=validated_data['phone']
+            phone=validated_data['phone'],
+            profile_picture=validated_data.get('profile_picture')
         )
-
-        
         user.set_password(validated_data['password'])
         user.save()
 
+        profile_data = {'email': validated_data['email']}
+        Profile.objects.create(user=user, **profile_data)
+
         return user
+
     
 
 class LoginSerializer(serializers.Serializer):
@@ -100,3 +109,9 @@ class LoginSerializer(serializers.Serializer):
 
         attrs['user'] = user
         return attrs
+    
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = '__all__'

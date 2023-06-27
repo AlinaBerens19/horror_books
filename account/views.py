@@ -1,5 +1,6 @@
 from contextvars import Token
 from django import views
+from django.shortcuts import get_object_or_404
 from requests import Response
 from rest_framework import generics
 from .models import User
@@ -43,7 +44,10 @@ class UserDetail(generics.RetrieveUpdateDestroyAPIView):
     serializer_class = UserSerializer 
 
     def get_object(self):
-        return self.request.user
+        email = self.kwargs['email']
+        obj = get_object_or_404(User, email=email)
+        self.check_object_permissions(self.request, obj)
+        return obj
     
 
 class UserLogin(APIView):
@@ -63,6 +67,62 @@ class UserLogin(APIView):
             'username': user.username,
             'email': user.email,
             'phone': user.phone,
-            'token': token
+            'token': token,
+            'profile_picture': user.profile_picture.url if user.profile_picture else ''
         }
         return Response({'user': user_data, 'message': 'User is authenticated'}, status=200)
+
+
+class UserProfile(APIView):
+    permission_classes = [permissions.IsOwnerOrReadOnly]
+
+    def get(self, request, format=None):
+        email = request.query_params.get('email')
+
+        if not email:
+            return Response({'error': 'Missing email parameter'}, status=400)
+
+        try:
+            user = User.objects.get(email=email)
+            
+        except User.DoesNotExist:
+            print('EMAIL ==> ', email)
+            return Response({'error': 'User not found'}, status=404)
+
+        serializer = serializers.ProfileSerializer(user.profile)
+        return Response(serializer.data)
+    
+
+    def put(self, request, format=None):
+        email = request.query_params.get('email')
+
+        if not email:
+            return Response({'error': 'Missing email parameter'}, status=404)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+
+        serializer = serializers.ProfileSerializer(user.profile, data=request.data)
+        if serializer.is_valid():
+            serializer.save()
+            return Response(serializer.data)
+        return Response(serializer.errors, status=404)
+
+
+    def delete(self, request, format=None):
+        email = request.query_params.get('email')
+
+        if not email:
+            return Response({'error': 'Missing email parameter'}, status=404)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'error': 'User not found'}, status=404)
+
+        user.profile.delete()
+        user.delete()
+        return Response(status=204)
+    

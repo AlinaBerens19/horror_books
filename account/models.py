@@ -38,14 +38,13 @@ class User(AbstractBaseUser):
     id = models.AutoField(primary_key=True)
     username = models.CharField(max_length=50, unique=True)
     created = models.DateTimeField(auto_now_add=True)
-    name = models.CharField(max_length=50, default='', null=True)
-    surname = models.CharField(max_length=50, default='', null=True)
     email = models.EmailField(max_length=50, default='', unique=True)
-    phone = models.CharField(max_length=50, unique=True)
-    profile_picture = models.ImageField(upload_to='media/', null=True, blank=True)
+    phone = models.CharField(max_length=50, unique=True, default='')
     updated = models.DateTimeField(auto_now=True)
     is_admin = models.BooleanField(default=False)
     is_active = models.BooleanField(default=True)
+    name = models.CharField(max_length=50, default='')
+    profile_picture = models.ImageField(upload_to='media/', null=True, blank=True)
     is_staff = models.BooleanField(default=False)
     is_superuser = models.BooleanField(default=False)
 
@@ -83,6 +82,28 @@ class User(AbstractBaseUser):
     
     def __str__(self):
         return self.email
+    
+    class Meta:
+        ordering = ['created']
+
+
+class Profile(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE)
+    address = models.TextField(max_length=500, blank=True, default='')
+    country = models.CharField(max_length=30, blank=True, default='')
+    city = models.CharField(max_length=30, blank=True, default='')
+    name = models.CharField(max_length=50, default='', null=True)
+    surname = models.CharField(max_length=50, default='', null=True)
+    phone = models.CharField(max_length=50, unique=True)
+    zip_code = models.CharField(max_length=30, blank=True, default='')
+    birth_date = models.DateField(null=True, blank=True)
+    created = models.DateTimeField(auto_now_add=True)
+
+    def __str__(self):
+        return self.user.email
+    
+    def email(self):
+        return self.user.email
     
     class Meta:
         ordering = ['created']
